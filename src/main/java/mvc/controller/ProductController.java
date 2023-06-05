@@ -1,7 +1,7 @@
 package mvc.controller;
 
+import mvc.entity.OrdersEntity;
 import mvc.entity.ProductEntity;
-import mvc.repository.OrderDetailsRepository;
 import mvc.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -18,7 +18,7 @@ public class ProductController {
     ProductRepository productRepository;
 
     @RequestMapping(method = RequestMethod.GET)
-    public String productList(Model model){
+    public String productList(OrdersEntity order,Model model){
         List<ProductEntity> productList =(List<ProductEntity>) productRepository.findAll();
         model.addAttribute("productList",productList);
         return "productList";

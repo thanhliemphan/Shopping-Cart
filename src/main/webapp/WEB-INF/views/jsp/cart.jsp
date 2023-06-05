@@ -16,7 +16,7 @@
                 <c:out value="${msg}" />
               </p>
               <c:if test="${empty cartList}">
-                <p>No data</p>
+                <p>No item in Cart</p>
               </c:if>
               <c:if test="${not empty cartList}">
                 <table class="table">
@@ -46,10 +46,11 @@
               </c:if>
 
              <div>
-             <div class="d-flex justify-content-center">
-                <a class="btn btn-outline-primary" href="/checkOut">Check Out</a>
-             </div>
-
+             <c:if test="${not empty cartList}">
+                <div class="d-flex justify-content-center">
+                    <a class="btn btn-outline-primary" href="/checkOut">Check Out</a>
+                </div>
+             </c:if>
            </div>
         </body>
 

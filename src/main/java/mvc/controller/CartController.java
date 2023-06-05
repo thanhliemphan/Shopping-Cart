@@ -7,7 +7,6 @@ import mvc.entity.ProductEntity;
 import mvc.repository.OrderDetailsRepository;
 import mvc.repository.OrdersRepository;
 import mvc.repository.ProductRepository;
-import mvc.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,8 +24,7 @@ import java.util.*;
 
 @Controller
 public class CartController {
-    @Autowired
-    CartService cartService;
+
     @Autowired
     ProductRepository productRepository;
 
@@ -37,24 +35,40 @@ public class CartController {
 
 
     @RequestMapping(value = "/cart")
-    public String showCart(Model model){
-        model.addAttribute("cartList",cartService.getAllItem());
+    public String showCart(Model model,HttpServletRequest request){
+        List<CartEntity> cartList =(List<CartEntity>) request.getSession().getAttribute("cartList");
+        model.addAttribute("cartList",cartList);
         return "cart";
     }
     @RequestMapping(value = "add/{productId}")
-    public String addItem(@PathVariable("productId") Integer productId){
+    public String addItem(@PathVariable("productId") Integer productId,HttpServletRequest request){
+        List<CartEntity> cartList =(List<CartEntity>) request.getSession().getAttribute("cartList");
+        if (cartList==null){
+            cartList = new ArrayList<>();
+            request.getSession().setAttribute("cartList",cartList);
+        }
+        for (CartEntity item : cartList) {
+            if (item.getProduct().getProductId()==productId){
+                item.setQuantity(item.getQuantity()+1);
+                return "redirect:/cart";
+            }
+        }
         ProductEntity product = productRepository.findById(productId).get();
-        if (product!=null){
             CartEntity item = new CartEntity();
             item.setProduct(product);
             item.setQuantity(1);
-            cartService.addItem(item);
-        }
+            cartList.add(item);
         return "redirect:/cart";
     }
     @RequestMapping(value = "remove/{productId}")
-    public String removeItem(@PathVariable("productId") Integer productId){
-        cartService.removeItem(productId);
+    public String removeItem(@PathVariable("productId") Integer productId,HttpServletRequest request){
+        List<CartEntity> cartList =(List<CartEntity>) request.getSession().getAttribute("cartList");
+        for (CartEntity item : cartList) {
+            if (item.getProduct().getProductId()==productId){
+                cartList.remove(item);
+                return "redirect:/cart";
+            }
+        }
         return "redirect:/cart";
     }
 
@@ -66,7 +80,8 @@ public class CartController {
     }
 
     @RequestMapping(value = "/checkOut",method = RequestMethod.POST,produces =  "text/plain;charset=UTF-8")
-    public String saveCheckOut(@Valid @ModelAttribute("order") OrdersEntity order, BindingResult br, Model model, HttpSession session){
+    public String saveCheckOut(@Valid @ModelAttribute("order") OrdersEntity order, BindingResult br, Model model,HttpSession session){
+        List<CartEntity> cartList =(List<CartEntity>) session.getAttribute("cartList");
         if(br.hasErrors())
         {
             return "checkOut";
@@ -75,9 +90,7 @@ public class CartController {
         {
             order.setOrderDate(LocalDate.now());
             ordersRepository.save(order);
-            session.setAttribute("order",order);
-            for (CartEntity item:cartService.getAllItem()
-                 ) {
+            for (CartEntity item:cartList) {
                 OrderDetailsEntity orderDetails = new OrderDetailsEntity();
                 orderDetails.setOrdersEntity(order);
                 orderDetails.setProductEntity(item.getProduct());
@@ -85,6 +98,7 @@ public class CartController {
 
                 orderDetailsRepository.save(orderDetails);
             }
+            session.invalidate();
             return "redirect:/myOrder";
         }
     }
